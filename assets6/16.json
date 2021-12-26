@@ -1,0 +1,60 @@
+{
+    "name": "Trippy Place #48",
+    "symbol": "TRPL",
+    "description": "100 Limited Edition Genesis pieces. Original artwork created by TrippyPlaces.",
+    "seller_fee_basis_points": 500,
+    "image": "47.png",
+    "attributes": [
+      {
+        "trait_type": "hat",
+        "value": "Wizard Hat"
+      },
+      {
+        "trait_type": "body",
+        "value": "White"
+     },
+     {
+        "trait_type": "eyes",
+        "value": "Crazy"
+      },
+      {
+        "trait_type": "mouth",
+        "value": "Duct Tape"
+      },
+      {
+        "trait_type": "hand",
+        "value": "Wizard's Staff"
+     },
+     {
+        "trait_type": "accessories",
+        "value": "None"
+      },
+      {
+        "trait_type": "background",
+        "value": "Ocean"
+     },
+     {
+        "trait_type": "glitch",
+        "value": "Cardboard"
+     }
+
+    ],
+    "collection": {
+       "name": "Trippy Places"
+    },
+    "properties": {
+      "files": [
+        {
+          "uri": "47.png",
+          "type": "image/png"
+        }
+      ],
+      "category": "image",
+      "creators": [
+        {
+          "address": "3hrAeJcAmkgq71q8969xqP6CpRte3MTKY7xG7U9hXSdS",
+          "share": 100
+        }
+      ]
+    }
+  }

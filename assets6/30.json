@@ -1,0 +1,60 @@
+{
+    "name": "Trippy Place #39",
+    "symbol": "TRPL",
+    "description": "100 Limited Edition Genesis pieces. Original artwork created by TrippyPlaces.",
+    "seller_fee_basis_points": 500,
+    "image": "38.png",
+    "attributes": [
+      {
+        "trait_type": "hat",
+        "value": "None"
+      },
+      {
+        "trait_type": "body",
+        "value": "Ruby"
+     },
+     {
+        "trait_type": "eyes",
+        "value": "Sleepy"
+      },
+      {
+        "trait_type": "mouth",
+        "value": "Giant Lips"
+      },
+      {
+        "trait_type": "hand",
+        "value": "None"
+     },
+     {
+        "trait_type": "accessories",
+        "value": "None"
+      },
+      {
+        "trait_type": "background",
+        "value": "Rose"
+     },
+     {
+        "trait_type": "glitch",
+        "value": "Rgb"
+     }
+
+    ],
+    "collection": {
+       "name": "Trippy Places"
+    },
+    "properties": {
+      "files": [
+        {
+          "uri": "38.png",
+          "type": "image/png"
+        }
+      ],
+      "category": "image",
+      "creators": [
+        {
+          "address": "3hrAeJcAmkgq71q8969xqP6CpRte3MTKY7xG7U9hXSdS",
+          "share": 100
+        }
+      ]
+    }
+  }

@@ -1,0 +1,60 @@
+{
+    "name": "Trippy Place #37",
+    "symbol": "TRPL",
+    "description": "100 Limited Edition Genesis pieces. Original artwork created by TrippyPlaces.",
+    "seller_fee_basis_points": 500,
+    "image": "36.png",
+    "attributes": [
+      {
+        "trait_type": "hat",
+        "value": "Sherrif's Hat"
+      },
+      {
+        "trait_type": "body",
+        "value": "None"
+     },
+     {
+        "trait_type": "eyes",
+        "value": "Paper"
+      },
+      {
+        "trait_type": "mouth",
+        "value": "Paper"
+      },
+      {
+        "trait_type": "hand",
+        "value": "None"
+     },
+     {
+        "trait_type": "accessories",
+        "value": "Cigarette"
+      },
+      {
+        "trait_type": "background",
+        "value": "Rainbow"
+     },
+     {
+        "trait_type": "glitch",
+        "value": "Broken TV"
+     }
+
+    ],
+    "collection": {
+       "name": "Trippy Places"
+    },
+    "properties": {
+      "files": [
+        {
+          "uri": "36.png",
+          "type": "image/png"
+        }
+      ],
+      "category": "image",
+      "creators": [
+        {
+          "address": "3hrAeJcAmkgq71q8969xqP6CpRte3MTKY7xG7U9hXSdS",
+          "share": 100
+        }
+      ]
+    }
+  }
