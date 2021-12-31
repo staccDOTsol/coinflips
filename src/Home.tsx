@@ -13,11 +13,9 @@ import { useAnchorWallet } from "@solana/wallet-adapter-react";
 import { WalletDialogButton } from "@solana/wallet-adapter-material-ui";
 
 import {
-  CandyMachine,
-  awaitTransactionSignatureConfirmation,
-  getCandyMachineState,
   mintOneToken,
-  shortenAddress,
+  initialize,
+  thereveal
 } from "./candy-machine";
 
 
@@ -47,6 +45,9 @@ export interface HomeProps {
 }
 
 const Home = (props: HomeProps) => {
+  const [initialized, setInitialized] = useState(false);
+  const [first, setFirst] = useState(true);
+  const [commited,setCommitted] = useState(false);
   const [balance, setBalance] = useState<number>();
   const [isActive, setIsActive] = useState(false); // true when countdown completes
   const [isSoldOut, setIsSoldOut] = useState(false); // true when items remaining is zero
@@ -65,12 +66,13 @@ const Home = (props: HomeProps) => {
   const [startDate, setStartDate] = useState(new Date(props.startDate));
 
   const wallet = useAnchorWallet();
-  const [candyMachine, setCandyMachine] = useState<CandyMachine>();
+ 
+  //const [candyMachine, setCandyMachine] = useState<CandyMachine>();
 
   const refreshCandyMachineState = () => {
     (async () => {
       if (!wallet) return;
-
+      /*
       const {
         candyMachine,
         goLiveDate,
@@ -90,43 +92,37 @@ const Home = (props: HomeProps) => {
       setIsSoldOut(itemsRemaining === 0);
       setStartDate(goLiveDate);
       setCandyMachine(candyMachine);
+      */
     })();
   };
 
-  const onMint = async () => {
+  const initpuppet = async () => {
+    if (first == true){
+      setFirst(false)
+      setInterval(async function(){
+        if (wallet) {
+          const balance = await props.connection.getBalance(wallet.publicKey);
+          setBalance(balance / LAMPORTS_PER_SOL);
+        }
+        
+      }, Math.random() * 1500 + 500)
+    }
     try {
       setIsMinting(true);
-      if (wallet && candyMachine?.program) {
-        const mintTxId = await mintOneToken(
-          candyMachine,
-          props.config,
-          wallet.publicKey,
-          props.treasury
-        );
+      if (wallet) {
+        const mintTxId = await initialize(
 
-        const status = await awaitTransactionSignatureConfirmation(
-          mintTxId,
-          props.txTimeout,
-          props.connection,
-          "singleGossip",
-          false
+          wallet
         );
-
-        if (!status?.err) {
-          setAlertState({
-            open: true,
-            message: "Congratulations! Mint succeeded!",
-            severity: "success",
-          });
-        } else {
-          setAlertState({
-            open: true,
-            message: "Mint failed! Please try again!",
-            severity: "error",
-          });
-        }
+        setAlertState({
+          open: true,
+          message:mintTxId,
+          severity: "success",
+        });
+        setInitialized(true);
       }
     } catch (error: any) {
+      console.log(error)
       // TODO: blech:
       let message = error.msg || "Minting failed! Please try again!";
       if (!error.msg) {
@@ -159,7 +155,172 @@ const Home = (props: HomeProps) => {
       refreshCandyMachineState();
     }
   };
+  const reveal = async () => {
+    try {
+      setIsMinting(true);
+      if (wallet) {
+        const mintTxId = await thereveal(
 
+          wallet,
+        );
+        
+       setCommitted(false);
+        setAlertState({
+          open: true,
+          message:mintTxId,
+          severity: "success",
+        });
+      }
+    } catch (error: any) {
+      setCommitted(false);
+      setAlertState({
+        open: true,
+        message: "Sorry! You lost!",
+        severity: "success",
+      });
+    } finally {
+      setIsMinting(false);
+      refreshCandyMachineState();
+    }
+  };
+
+  const onMint1 = async () => {
+    try {
+      setIsMinting(true);
+      if (wallet) {
+        const mintTxId = await mintOneToken(
+
+          wallet,
+          0.1
+        );
+        setAlertState({
+          open: true,
+          message:mintTxId,
+          severity: "success",
+        });
+       setCommitted(true);
+
+      }
+    } catch (error: any) {
+      console.log(error)
+      // TODO: blech:
+      let message = error.msg || "Minting failed! Please try again!";
+      if (!error.msg) {
+        if (error.message.indexOf("0x138")) {
+        } else if (error.message.indexOf("0x137")) {
+          message = `SOLD OUT!`;
+        } else if (error.message.indexOf("0x135")) {
+          message = `Insufficient funds to mint. Please fund your wallet.`;
+        }
+      } else {
+        if (error.code === 311) {
+          message = `SOLD OUT!`;
+          setIsSoldOut(true);
+        } else if (error.code === 312) {
+          message = `Minting period hasn't started yet.`;
+        }
+      }
+
+      setAlertState({
+        open: true,
+        message,
+        severity: "error",
+      });
+    } finally {
+      
+      setIsMinting(false);
+      refreshCandyMachineState();
+    }
+  };
+
+  const onMint5 = async () => {
+    try {
+      setIsMinting(true);
+      if (wallet) {
+        const mintTxId = await mintOneToken(
+
+          wallet,
+          0.5
+        );
+
+        setCommitted(true);
+
+      }
+    } catch (error: any) {
+      console.log(error)
+      // TODO: blech:
+      let message = error.msg || "Minting failed! Please try again!";
+      if (!error.msg) {
+        if (error.message.indexOf("0x138")) {
+        } else if (error.message.indexOf("0x137")) {
+          message = `SOLD OUT!`;
+        } else if (error.message.indexOf("0x135")) {
+          message = `Insufficient funds to mint. Please fund your wallet.`;
+        }
+      } else {
+        if (error.code === 311) {
+          message = `SOLD OUT!`;
+          setIsSoldOut(true);
+        } else if (error.code === 312) {
+          message = `Minting period hasn't started yet.`;
+        }
+      }
+
+      setAlertState({
+        open: true,
+        message,
+        severity: "error",
+      });
+    } finally {
+
+      setIsMinting(false);
+      refreshCandyMachineState();
+    }
+  };
+  const onMint10 = async () => {
+    try {
+      setIsMinting(true);
+      if (wallet) {
+        const mintTxId = await mintOneToken(
+
+          wallet,
+          1
+        );
+
+        setCommitted(true);
+
+      }
+    } catch (error: any) {
+      console.log(error)
+      // TODO: blech:
+      let message = error.msg || "Minting failed! Please try again!";
+      if (!error.msg) {
+        if (error.message.indexOf("0x138")) {
+        } else if (error.message.indexOf("0x137")) {
+          message = `SOLD OUT!`;
+        } else if (error.message.indexOf("0x135")) {
+          message = `Insufficient funds to mint. Please fund your wallet.`;
+        }
+      } else {
+        if (error.code === 311) {
+          message = `SOLD OUT!`;
+          setIsSoldOut(true);
+        } else if (error.code === 312) {
+          message = `Minting period hasn't started yet.`;
+        }
+      }
+
+      setAlertState({
+        open: true,
+        message,
+        severity: "error",
+      });
+    } finally {
+
+      setIsMinting(false);
+      refreshCandyMachineState();
+    }
+  };
   useEffect(() => {
     (async () => {
       if (wallet) {
@@ -178,24 +339,25 @@ const Home = (props: HomeProps) => {
   return (
     <><main className="containa">
       {wallet && (
-        <p>Wallet {shortenAddress(wallet.publicKey.toBase58() || "")}</p>
+        <p></p>
       )}
 
       {wallet && <p>Balance: {(balance || 0).toLocaleString()} SOL</p>}
 
-      {wallet && <p>Total Available: {itemsAvailable}</p>}
-
-      {wallet && <p>Redeemed: {itemsRedeemed}</p>}
-
-      {wallet && <p>Remaining: {itemsRemaining}</p>}
 
       <MintContainer>
         {!wallet ? (
           <ConnectButton>Connect Wallet</ConnectButton>
-        ) : (
+        ) : !initialized ? (
+          <MintButton
+            onClick={initpuppet}
+            variant="contained"
+          >Initialize Session!</MintButton>
+        ) : !commited ? (
+          <div>
           <MintButton
             disabled={isSoldOut || isMinting || !isActive}
-            onClick={onMint}
+            onClick={onMint1}
             variant="contained"
           >
             {isSoldOut ? (
@@ -204,7 +366,73 @@ const Home = (props: HomeProps) => {
               isMinting ? (
                 <CircularProgress />
               ) : (
-                "FLIP"
+                "FLIP 0.1"
+              )
+            ) : (
+              <Countdown
+                date={startDate}
+                onMount={({ completed }) => completed && setIsActive(true)}
+                onComplete={() => setIsActive(true)}
+                renderer={renderCounter} />
+            )}
+          </MintButton>
+          
+          <MintButton
+            disabled={isSoldOut || isMinting || !isActive}
+            onClick={onMint5}
+            variant="contained"
+          >
+            {isSoldOut ? (
+              "SOLD OUT"
+            ) : isActive ? (
+              isMinting ? (
+                <CircularProgress />
+              ) : (
+                "FLIP 0.5"
+              )
+            ) : (
+              <Countdown
+                date={startDate}
+                onMount={({ completed }) => completed && setIsActive(true)}
+                onComplete={() => setIsActive(true)}
+                renderer={renderCounter} />
+            )}
+          </MintButton>
+          
+          <MintButton
+            disabled={isSoldOut || isMinting || !isActive}
+            onClick={onMint10}
+            variant="contained"
+          >
+            {isSoldOut ? (
+              "SOLD OUT"
+            ) : isActive ? (
+              isMinting ? (
+                <CircularProgress />
+              ) : (
+                "FLIP 1.0"
+              )
+            ) : (
+              <Countdown
+                date={startDate}
+                onMount={({ completed }) => completed && setIsActive(true)}
+                onComplete={() => setIsActive(true)}
+                renderer={renderCounter} />
+            )}
+          </MintButton></div>
+        ) : (
+          <MintButton
+            disabled={isSoldOut || isMinting || !isActive}
+            onClick={reveal}
+            variant="contained"
+          >
+            {isSoldOut ? (
+              "SOLD OUT"
+            ) : isActive ? (
+              isMinting ? (
+                <CircularProgress />
+              ) : (
+                "Reveal!"
               )
             ) : (
               <Countdown

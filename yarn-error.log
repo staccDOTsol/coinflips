@@ -1,25 +1,30 @@
 Arguments: 
-  /usr/local/bin/node /Users/nikitatelnovas/.yarn/bin/yarn.js build
+  /home/jare/.nvm/versions/node/v14.17.6/bin/node /home/jare/.nvm/versions/node/v14.17.6/bin/yarn add typescript==4.2.0
 
 PATH: 
-  /Users/nikitatelnovas/.yarn/bin:/Users/nikitatelnovas/.config/yarn/global/node_modules/.bin:/Users/nikitatelnovas/.local/share/solana/install/active_release/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/share/dotnet:~/.dotnet/tools:/Library/Frameworks/Mono.framework/Versions/Current/Commands:/Users/nikitatelnovas/.local/share/solana/install/active_release/bin:/Library/Frameworks/Python.framework/Versions/3.10/bin
+  /home/jare/.local/share/solana/install/active_release/bin:/home/jare/.local/bin:/home/jare/anaconda3/bin:/home/jare/anaconda3/condabin:/home/jare/.cargo/bin:/home/jare/.nvm/versions/node/v14.17.6/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/usr/lib/wsl/lib:/mnt/c/Program Files/Google/Chrome/Application:/mnt/c/Windows/system32:/mnt/c/Windows:/mnt/c/Windows/System32/Wbem:/mnt/c/Windows/System32/WindowsPowerShell/v1.0:/mnt/c/Windows/System32/OpenSSH:/mnt/c/Program Files/nodejs:/mnt/c/Program Files/Git/cmd:/mnt/c/Program Files/Docker/Docker/resources/bin:/mnt/c/ProgramData/DockerDesktop/version-bin:/mnt/c/ProgramData/chocolatey/bin:/mnt/c/cygwin/bin:/mnt/c/cygwin64/bin:/mnt/c/cygwin64/lib:/mnt/c/cygwin/lib:/mnt/c/Program Files/LLVM/bin:/mnt/c/Users/jared/.cargo/bin:/mnt/c/Users/jared/.local/share/solana/install/active_release/bin:/mnt/c/Users/jared/AppData/Local/Microsoft/WindowsApps:/mnt/c/Users/jared/AppData/Roaming/npm:/mnt/c/Program Files/OpenSSL-Win64/bin:/mnt/c/cygwin/bin:/mnt/c/cygwin64/bin:/mnt/c/cygwin64/lib:/mnt/c/cygwin/lib:/snap/bin
 
 Yarn version: 
-  1.22.15
+  1.22.17
 
 Node version: 
-  14.17.0
+  14.17.6
 
 Platform: 
-  darwin x64
+  linux x64
 
 Trace: 
-  SyntaxError: /Users/nikitatelnovas/Desktop/r6/candy-machine-mint/package.json: Unexpected end of JSON input
-      at JSON.parse (<anonymous>)
-      at /Users/nikitatelnovas/.yarn/lib/cli.js:1625:59
-      at Generator.next (<anonymous>)
-      at step (/Users/nikitatelnovas/.yarn/lib/cli.js:310:30)
-      at /Users/nikitatelnovas/.yarn/lib/cli.js:321:13
+  Error: https://registry.yarnpkg.com/typescript==4.2.0: Not found
+      at Request.params.callback [as _callback] (/home/jare/.nvm/versions/node/v14.17.6/lib/node_modules/yarn/lib/cli.js:67029:18)
+      at Request.self.callback (/home/jare/.nvm/versions/node/v14.17.6/lib/node_modules/yarn/lib/cli.js:140883:22)
+      at Request.emit (events.js:400:28)
+      at Request.<anonymous> (/home/jare/.nvm/versions/node/v14.17.6/lib/node_modules/yarn/lib/cli.js:141855:10)
+      at Request.emit (events.js:400:28)
+      at IncomingMessage.<anonymous> (/home/jare/.nvm/versions/node/v14.17.6/lib/node_modules/yarn/lib/cli.js:141777:12)
+      at Object.onceWrapper (events.js:519:28)
+      at IncomingMessage.emit (events.js:412:35)
+      at endReadableNT (internal/streams/readable.js:1317:12)
+      at processTicksAndRejections (internal/process/task_queues.js:82:21)
 
 npm manifest: 
   {
@@ -64,7 +69,22 @@ npm manifest:
         "react-app/jest"
       ]
     },
-    "browserslist": []
+    "browserslist": {
+      "production": [
+        ">0.2%",
+        "not dead",
+        "not op_mini all"
+      ],
+      "development": [
+        "last 1 chrome version",
+        "last 1 firefox version",
+        "last 1 safari version"
+      ]
+    },
+    "devDependencies": {
+      "@types/styled-components": "^5.1.14"
+    }
+  }
 
 yarn manifest: 
   No manifest

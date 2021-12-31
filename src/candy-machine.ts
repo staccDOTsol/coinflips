@@ -1,316 +1,300 @@
-import * as anchor from "@project-serum/anchor";
-
 import {
-  MintLayout,
-  TOKEN_PROGRAM_ID,
-  Token,
-} from "@solana/spl-token";
+  Keypair,
+  SystemProgram,
+  PublicKey,
+  Connection,
+  Struct
+} from '@solana/web3.js'
+import * as anchor from "@project-serum/anchor";
+import { AnchorWallet } from '@solana/wallet-adapter-react';
 
-export const CANDY_MACHINE_PROGRAM = new anchor.web3.PublicKey(
-  "cndyAnrLdpjq1Ssp1z8xxDsB8dxe7u4HL5Nxi2K5WXZ"
+const TOKEN_PROGRAM_ID = new PublicKey(
+  'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
 );
+const PUPP_PROGRAM_ID = new PublicKey("39W6qnEQhdaWE25ANNauVesPV1d81QwbMCL5GRwAoymy");
 
-const SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = new anchor.web3.PublicKey(
-  "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-);
+const HOUSE_PROGRAM_ID = new PublicKey("9pJ55KszBGk1Td3LbRrWLszAaiXg7YLW5oouLABJwsZg");
+const PREFIX = 'rng_house';
+const FEES = "fees";
+const TREASURY = 'treasury';
 
-const TOKEN_METADATA_PROGRAM_ID = new anchor.web3.PublicKey(
-  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-);
 
-export interface CandyMachine {
-  id: anchor.web3.PublicKey,
-  connection: anchor.web3.Connection;
-  program: anchor.Program;
+async function getHouse(author: PublicKey, operator: PublicKey){
+  // #[account(init, seeds=[PREFIX.as_bytes(), author.key().as_ref(), operator.key().as_ref()], bump=house_bump, space=HOUSE_SIZE, payer=author)]
+  // house: Account<'info, House>,
+  return await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from(PREFIX),
+        author.toBuffer(),
+        operator.toBuffer()],
+      HOUSE_PROGRAM_ID,
+  );
+}
+ async function getAuthorFeeAccount(house: PublicKey, author: PublicKey, operator: PublicKey) {
+  // #[account(mut, seeds=[PREFIX.as_bytes(), FEES.as_bytes(), house.key().as_ref(), author.key.as_ref(), operator.key.as_ref()], bump=author_fee_bump)]
+  // author_fee_account: UncheckedAccount<'info>,
+  return await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from(PREFIX),
+        Buffer.from(FEES),
+        house.toBuffer(),
+        author.toBuffer(),
+        operator.toBuffer(),
+      ],
+      HOUSE_PROGRAM_ID,
+  );
 }
 
-interface CandyMachineState {
-  candyMachine: CandyMachine;
-  itemsAvailable: number;
-  itemsRedeemed: number;
-  itemsRemaining: number;
-  goLiveDate: Date,
+ async function getOperatorTreasuryAccount(house: PublicKey, author: PublicKey, operator: PublicKey) {
+  // #[account(mut, seeds=[PREFIX.as_bytes(), TREASURY.as_bytes(), house.key().as_ref(), author.key.as_ref(), operator.key.as_ref()], bump=operator_treasury_bump)]
+  // operator_treasury: UncheckedAccount<'info>,
+  return await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from(PREFIX),
+        Buffer.from(TREASURY),
+        house.toBuffer(),
+        author.toBuffer(),
+        operator.toBuffer(),
+      ],
+      HOUSE_PROGRAM_ID,
+  );
 }
 
-export const awaitTransactionSignatureConfirmation = async (
-  txid: anchor.web3.TransactionSignature,
-  timeout: number,
-  connection: anchor.web3.Connection,
-  commitment: anchor.web3.Commitment = "recent",
-  queryStatus = false
-): Promise<anchor.web3.SignatureStatus | null | void> => {
-  let done = false;
-  let status: anchor.web3.SignatureStatus | null | void = {
-    slot: 0,
-    confirmations: 0,
-    err: null,
-  };
-  let subId = 0;
-  status = await new Promise(async (resolve, reject) => {
-    setTimeout(() => {
-      if (done) {
-        return;
-      }
-      done = true;
-      console.log("Rejecting for timeout...");
-      reject({ timeout: true });
-    }, timeout);
-    try {
-      subId = connection.onSignature(
-        txid,
-        (result: any, context: any) => {
-          done = true;
-          status = {
-            err: result.err,
-            slot: context.slot,
-            confirmations: 0,
-          };
-          if (result.err) {
-            console.log("Rejected via websocket", result.err);
-            reject(status);
-          } else {
-            console.log("Resolved via websocket", result);
-            resolve(status);
-          }
-        },
-        commitment
-      );
-    } catch (e) {
-      done = true;
-      console.error("WS error in setup", txid, e);
-    }
-    while (!done && queryStatus) {
-      // eslint-disable-next-line no-loop-func
-      (async () => {
-        try {
-          const signatureStatuses = await connection.getSignatureStatuses([
-            txid,
-          ]);
-          status = signatureStatuses && signatureStatuses.value[0];
-          if (!done) {
-            if (!status) {
-              console.log("REST null result for", txid, status);
-            } else if (status.err) {
-              console.log("REST error for", txid, status);
-              done = true;
-              reject(status.err);
-            } else if (!status.confirmations) {
-              console.log("REST no confirmations for", txid, status);
-            } else {
-              console.log("REST confirmation for", txid, status);
-              done = true;
-              resolve(status);
-            }
-          }
-        } catch (e) {
-          if (!done) {
-            console.log("REST connection error: txid", txid, e);
-          }
-        }
-      })();
-      await sleep(2000);
-    }
+
+ async function getOperatorFeeAccount(house: PublicKey, author: PublicKey, operator: PublicKey) {
+  // #[account(mut, seeds=[PREFIX.as_bytes(), FEES.as_bytes(), house.key().as_ref(), author.key.as_ref(), operator.key.as_ref()], bump=operator_fee_bump)]
+  // operator_fee_account: UncheckedAccount<'info>,
+  return await anchor.web3.PublicKey.findProgramAddress(
+      [
+        Buffer.from(PREFIX),
+        Buffer.from(FEES),
+        house.toBuffer(),
+        author.toBuffer(),
+        operator.toBuffer(),
+      ],
+      HOUSE_PROGRAM_ID,
+  );
+}
+
+
+async function loadHouseProgram(walletWrapper: AnchorWallet) {
+  const solConnection = new Connection("https://api.devnet.solana.com");
+  const provider = new anchor.Provider(solConnection, walletWrapper, {
+    preflightCommitment: 'confirmed', commitment: 'confirmed'
   });
-
-  //@ts-ignore
-  if (connection._signatureSubscriptions[subId]) {
-    connection.removeSignatureListener(subId);
-  }
-  done = true;
-  console.log("Returning status", status);
-  return status;
-}
-
-/* export */ const createAssociatedTokenAccountInstruction = (
-  associatedTokenAddress: anchor.web3.PublicKey,
-  payer: anchor.web3.PublicKey,
-  walletAddress: anchor.web3.PublicKey,
-  splTokenMintAddress: anchor.web3.PublicKey
-) => {
-  const keys = [
-    { pubkey: payer, isSigner: true, isWritable: true },
-    { pubkey: associatedTokenAddress, isSigner: false, isWritable: true },
-    { pubkey: walletAddress, isSigner: false, isWritable: false },
-    { pubkey: splTokenMintAddress, isSigner: false, isWritable: false },
-    {
-      pubkey: anchor.web3.SystemProgram.programId,
-      isSigner: false,
-      isWritable: false,
-    },
-    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-    {
-      pubkey: anchor.web3.SYSVAR_RENT_PUBKEY,
-      isSigner: false,
-      isWritable: false,
-    },
-  ];
-  return new anchor.web3.TransactionInstruction({
-    keys,
-    programId: SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
-    data: Buffer.from([]),
-  });
-}
-
-export const getCandyMachineState = async (
-  anchorWallet: anchor.Wallet,
-  candyMachineId: anchor.web3.PublicKey,
-  connection: anchor.web3.Connection,
-): Promise<CandyMachineState> => {
-  const provider = new anchor.Provider(connection, anchorWallet, {
-    preflightCommitment: "recent",
-  });
-
   const idl = await anchor.Program.fetchIdl(
-    CANDY_MACHINE_PROGRAM,
-    provider
+    HOUSE_PROGRAM_ID,
+    provider,
   );
+  
+  // const idl = await anchor.Program.fetchIdl(HOUSE_PROGRAM_ID, provider);
 
-  const program = new anchor.Program(idl, CANDY_MACHINE_PROGRAM, provider);
-  const candyMachine = {
-    id: candyMachineId,
-    connection,
-    program,
-  }
-
-  const state: any = await program.account.candyMachine.fetch(candyMachineId);
-
-  const itemsAvailable = state.data.itemsAvailable.toNumber();
-  const itemsRedeemed = state.itemsRedeemed.toNumber();
-  const itemsRemaining = itemsAvailable - itemsRedeemed;
-
-  let goLiveDate = state.data.goLiveDate.toNumber();
-  goLiveDate = new Date(goLiveDate * 1000);
-
-  console.log({
-    itemsAvailable,
-    itemsRedeemed,
-    itemsRemaining,
-    goLiveDate,
-  })
-
-  return {
-    candyMachine,
-    itemsAvailable,
-    itemsRedeemed,
-    itemsRemaining,
-    goLiveDate,
-  };
+  return new anchor.Program(idl, HOUSE_PROGRAM_ID, provider);
 }
 
-const getMasterEdition = async (
-  mint: anchor.web3.PublicKey
-): Promise<anchor.web3.PublicKey> => {
-  return (
-    await anchor.web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("metadata"),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mint.toBuffer(),
-        Buffer.from("edition"),
-      ],
-      TOKEN_METADATA_PROGRAM_ID
-    )
-  )[0];
-};
 
-const getMetadata = async (
-  mint: anchor.web3.PublicKey
-): Promise<anchor.web3.PublicKey> => {
-  return (
-    await anchor.web3.PublicKey.findProgramAddress(
-      [
-        Buffer.from("metadata"),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mint.toBuffer(),
-      ],
-      TOKEN_METADATA_PROGRAM_ID
-    )
-  )[0];
-};
+const jare = "4tui4yfA6MNgLhjXmKBATrPvEUGseEeqQrqAyVHintUQ";
+const author = new PublicKey(jare);
 
-const getTokenWallet = async (
-  wallet: anchor.web3.PublicKey,
-  mint: anchor.web3.PublicKey
-) => {
-  return (
-    await anchor.web3.PublicKey.findProgramAddress(
-      [wallet.toBuffer(), TOKEN_PROGRAM_ID.toBuffer(), mint.toBuffer()],
-      SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID
-    )
-  )[0];
-};
 
-export const mintOneToken = async (
-  candyMachine: CandyMachine,
-  config: anchor.web3.PublicKey, // feels like this should be part of candyMachine?
-  payer: anchor.web3.PublicKey,
-  treasury: anchor.web3.PublicKey,
+let newPuppetAccount: PublicKey;
+let newPuppetAccountBump: number;
+let first = true;
+let solConnection: anchor.web3.Connection;
+let provider: anchor.Provider;
+let puppetMaster: any;
+let house: PublicKey;
+let houseObj: any;
+let uuid: String;
+let operator: PublicKey;
+export const initialize = async (
+  walletKeyPair: AnchorWallet
 ): Promise<string> => {
-  const mint = anchor.web3.Keypair.generate();
-  const token = await getTokenWallet(payer, mint.publicKey);
-  const { connection, program } = candyMachine;
-  const metadata = await getMetadata(mint.publicKey);
-  const masterEdition = await getMasterEdition(mint.publicKey);
+  
 
-  const rent = await connection.getMinimumBalanceForRentExemption(
-    MintLayout.span
+ solConnection = new anchor.web3.Connection(
+  //@ts-ignore
+  "https://api.devnet.solana.com",
+);
+ provider = new anchor.Provider(solConnection, walletKeyPair, {
+preflightCommitment: 'confirmed', commitment: 'confirmed'
+});
+
+ anchor.setProvider(provider);
+
+   puppetMaster = await loadHouseProgram(walletKeyPair);
+  //Initialize a new puppet account.
+   house = new PublicKey("ASTu9TrWQkQL693SzAZ2533f871WUP3RxkW9y6nLGP9L")
+
+   houseObj = await puppetMaster.account.house.fetch(
+    house,
   );
+  // @ts-ignore
+   operator = houseObj.operator;
+   uuid = (Math.floor((Math.random() * 9)).toString() +  Math.floor((Math.random() * 9)) +  Math.floor((Math.random() * 9)) +  Math.floor((Math.random() * 9)) +  Math.floor((Math.random() * 9)) +  Math.floor((Math.random() * 9)))
+ const [newPuppetAccount2, newPuppetAccountBump2] = await anchor.web3.PublicKey.findProgramAddress(
 
-  return await program.rpc.mintNft({
+  // @ts-ignore
+  [Buffer.from("rng_house"), walletKeyPair.publicKey.toBuffer(), house.toBuffer(), Buffer.from(uuid)],
+  HOUSE_PROGRAM_ID
+);
+newPuppetAccount = newPuppetAccount2;
+newPuppetAccountBump = newPuppetAccountBump2;
+try{
+ await puppetMaster.rpc.initialize(newPuppetAccountBump, uuid,{
     accounts: {
-      config,
-      candyMachine: candyMachine.id,
-      payer: payer,
-      wallet: treasury,
-      mint: mint.publicKey,
-      metadata,
-      masterEdition,
-      mintAuthority: payer,
-      updateAuthority: payer,
-      tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
-      tokenProgram: TOKEN_PROGRAM_ID,
-      systemProgram: anchor.web3.SystemProgram.programId,
-      rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-      clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+      puppet: newPuppetAccount,
+      user: walletKeyPair.publicKey,
+      systemProgram: SystemProgram.programId,
+      recentBlockhashes: anchor.web3.SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
+      house: house,
     },
-    signers: [mint],
-    instructions: [
-      anchor.web3.SystemProgram.createAccount({
-        fromPubkey: payer,
-        newAccountPubkey: mint.publicKey,
-        space: MintLayout.span,
-        lamports: rent,
-        programId: TOKEN_PROGRAM_ID,
-      }),
-      Token.createInitMintInstruction(
-        TOKEN_PROGRAM_ID,
-        mint.publicKey,
-        0,
-        payer,
-        payer
-      ),
-      createAssociatedTokenAccountInstruction(
-        token,
-        payer,
-        payer,
-        mint.publicKey
-      ),
-      Token.createMintToInstruction(
-        TOKEN_PROGRAM_ID,
-        mint.publicKey,
-        token,
-        payer,
-        [],
-        1
-      ),
-    ],
-  });
-}
+    signers: [],
+  }); 
+first = false;
+return 'Initialized!'
 
-export const shortenAddress = (address: string, chars = 4): string => {
-  return `${address.slice(0, chars)}...${address.slice(-chars)}`;
+} catch (err){
+  
+}
+return 'Failed creating account!'
 };
 
-const sleep = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+export const thereveal = async (
+  walletKeyPair: AnchorWallet,
+): Promise<string> => {
+  
+
+ 
+try{
+  // @ts-ignore
+  
+
+    let result2 = await puppetMaster.rpc.uncover(  {
+      accounts: {
+        // @ts-ignore
+        author: houseObj.author,
+        // @ts-ignore
+        authorFeeAccount: houseObj.authorFeeAccount,
+        // @ts-ignore
+        operator: houseObj.operator,
+        // @ts-ignore
+        authorFeeAccount: houseObj.authorFeeAccount,
+        // @ts-ignore
+        operatorFeeAccount: houseObj.operatorFeeAccount,
+        house: house,
+        puppet: newPuppetAccount,
+        // @ts-ignore
+        operatorTreasury: houseObj.operatorTreasury,
+        recentBlockhashes: anchor.web3.SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
+        jare: jare,
+        user: walletKeyPair.publicKey,
+        systemProgram: SystemProgram.programId,
+      },remainingAccounts: [
+        {
+          // @ts-ignore
+          pubkey: houseObj.operatorTreasury,
+          isSigner: false,
+          isWritable: true,
+        }
+      ],
+      signers: [],
+      
+    },
+    );
+    console.log(result2)
+    return  ('Won 2x your wager back!!')
+  }
+catch (err){
+  console.log(err)
+      return  ('lost sol - play again!')
+    }
+    /*
+    let results: string;
+    // Check the state updated.
+    houseObj = await puppetMaster.account.house.fetch(
+      house,
+    );
+    const puppetAccount = await houseObj.puppet.account.data.fetch(newPuppetAccount);
+  console.log(puppetAccount)
+   // @ts-ignore
+    if (puppetAccount.wonLast == false) {
+      // @ts-ignore
+      results = ('lost your bet of ' + puppetAccount.bet.toString() + ' sol')
+    } else {
+      // @ts-ignore
+      results = ('won ' + (puppetAccount.bet * 2).toString() + ' sol :)')
+    }
+    return results; */
+  };
+export const mintOneToken = async (
+  walletKeyPair: AnchorWallet,
+  bet: number
+): Promise<string> => {
+  
+
+ 
+try{
+  // @ts-ignore
+   let result = await puppetMaster.rpc.pullStrings(new anchor.BN(bet * 10 ** 9),       {
+      accounts: {
+        // @ts-ignore
+        author: houseObj.author,
+        // @ts-ignore
+        authorFeeAccount: houseObj.authorFeeAccount,
+        // @ts-ignore
+        operator: houseObj.operator,
+        // @ts-ignore
+        authorFeeAccount: houseObj.authorFeeAccount,
+        // @ts-ignore
+        operatorFeeAccount: houseObj.operatorFeeAccount,
+        // @ts-ignore
+        house: house,
+        // @ts-ignore
+        puppet: newPuppetAccount,
+        // @ts-ignore
+        operatorTreasury: houseObj.operatorTreasury,
+        recentBlockhashes: anchor.web3.SYSVAR_RECENT_BLOCKHASHES_PUBKEY,
+        jare: jare,
+        // @ts-ignore
+        user: walletKeyPair.publicKey,
+        systemProgram: SystemProgram.programId,
+      },remainingAccounts: [
+        {
+          // @ts-ignore
+          pubkey: houseObj.operatorTreasury,
+          isSigner: false,
+          isWritable: true,
+        }
+      ],
+      signers: [],
+      
+    },
+    );
+
+    // @ts-ignore
+      return  ('commited to maybe double your Sol! :)')
+  }
+catch (err){
+  // @ts-ignore
+      return  ('err ' + err.toString())
+    }
+    /*
+
+    // Check the state updated.
+   const puppetAccount = await houseObj.puppet.account.data.fetch(newPuppetAccount);
+   let results: string;
+   // @ts-ignore
+    if (puppetAccount.data < 4) {
+      // @ts-ignore
+      console.log(puppetAccount.data.toNumber())
+      results = ('lost your bet of ' + bet.toString() + ' sol')
+      console.log('')
+    } else {
+      // @ts-ignore
+      console.log(puppetAccount.data.toNumber())
+      results = ('won ' + (bet * 2).toString() + ' sol :)')
+      console.log('')
+    }
+    return results;
+*/
+  };
